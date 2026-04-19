@@ -4,4 +4,7 @@
 __pycache__
 info
 logs
+
 *.lnk
+*.log
+*.bak
