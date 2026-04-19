@@ -1,0 +1,24 @@
+{
+  "inventory_dir": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\csgo legacy\\csgo_gc\\inventory.txt",
+  "log_level": "INFO",
+  "create_backup": false,
+  "interactive_mode": true,
+  "features": {
+    "pin_inventory_value": true,
+    "normalize_float_values": true,
+    "force_weapon_stattrak": true,
+    "randomize_weapon_kill_counters": true,
+    "clean_unsupported_weapon_stattrak": true,
+    "strip_knife_stattrak": true,
+    "resolve_case_hardened_blue_gem": true,
+    "resolve_fade_full_fade": true,
+    "dedupe_items": true,
+    "rebuild_default_equips": true
+  },
+  "case_hardened": {
+    "preferred_seed_overrides": {}
+  },
+  "fade": {
+    "preferred_seed_overrides": {}
+  }
+}
