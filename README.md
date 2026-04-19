@@ -105,17 +105,17 @@ The script always tries to resolve the inventory path from `cfg.json` first.
 From the project folder:
 
 ```powershell
-uv run skin-finalizing
+uv run main
 ```
 
 Useful options:
 
 ```powershell
-uv run skin-finalizing --non-interactive
-uv run skin-finalizing --no-backup
-uv run skin-finalizing --output "C:\path\to\output_inventory.txt"
-uv run skin-finalizing --log-level DEBUG
-uv run skin-finalizing --config "C:\path\to\cfg.json"
+uv run main --non-interactive
+uv run main --no-backup
+uv run main --output "C:\path\to\output_inventory.txt"
+uv run main --log-level DEBUG
+uv run main --config "C:\path\to\cfg.json"
 ```
 
 You can also launch it from the workspace root through the compatibility wrapper:
