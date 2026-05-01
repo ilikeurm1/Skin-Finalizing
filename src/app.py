@@ -4,18 +4,18 @@ import argparse
 import json
 from pathlib import Path
 
-from .gui import SelectionCanceledError
-from .utils.catalog import CatalogResolver
-from .utils.configuration import get_project_root, load_config, resolve_inventory_path
-from .utils.keyvalues import (
+from src.gui import SelectionCanceledError
+from src.utils.catalog import CatalogResolver
+from src.utils.configuration import get_project_root, load_config, resolve_inventory_path
+from src.utils.keyvalues import (
     KeyValueParseError,
     parse_inventory_document,
     serialize_inventory_document,
 )
-from .utils.loadout import rebuild_equips
-from .utils.models import FinalizeStats
-from .utils.normalization import normalize_inventory
-from .utils.runtime import (
+from src.utils.loadout import rebuild_equips
+from src.utils.models import FinalizeStats
+from src.utils.normalization import normalize_inventory
+from src.utils.runtime import (
     LOGGER,
     configure_logging,
     create_backup,
@@ -64,6 +64,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
+    print(args)
     try:
         config, config_path = load_config(
             Path(args.config).resolve() if args.config else None

@@ -2,7 +2,7 @@
 name = "Skin-Finalizing"
 version = "0.1.0"
 description = "Finalize legacy csgo_gc inventories with GUI loadout selection"
-authors = [{ name = "Frosty", email = "yeetloloofxd@gmail.com" }]
+authors = [{ name = "Frosty"}]
 requires-python = ">=3.13"
 dependencies = []
 
