@@ -64,7 +64,6 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
-    print(args)
     try:
         config, config_path = load_config(
             Path(args.config).resolve() if args.config else None
