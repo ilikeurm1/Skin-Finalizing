@@ -3,17 +3,22 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+from typing import Any
 
 from src.gui import SelectionCanceledError
 from src.utils.catalog import CatalogResolver
-from src.utils.configuration import get_project_root, load_config, resolve_inventory_path
+from src.utils.configuration import (
+    get_project_root,
+    load_config,
+    resolve_inventory_path,
+)
 from src.utils.keyvalues import (
     KeyValueParseError,
     parse_inventory_document,
     serialize_inventory_document,
 )
 from src.utils.loadout import rebuild_equips
-from src.utils.models import FinalizeStats
+from src.utils.models import FinalizeStats, InventoryDocument
 from src.utils.normalization import normalize_inventory
 from src.utils.runtime import (
     LOGGER,
@@ -63,7 +68,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
-    args = parse_args()
+    args: argparse.Namespace = parse_args()
     try:
         config, config_path = load_config(
             Path(args.config).resolve() if args.config else None
@@ -72,11 +77,11 @@ def main() -> int:
         print(f"Failed to load cfg.json: {exc}")
         return 1
 
-    project_root = get_project_root()
-    log_path = configure_logging(project_root, args.log_level or config.log_level)
-    input_path = resolve_inventory_path(config, config_path, cli_input=args.input)
-    output_path = Path(args.output).resolve() if args.output else input_path
-    non_interactive = args.non_interactive or not config.interactive_mode
+    project_root: Path = get_project_root()
+    log_path: Path = configure_logging(project_root, args.log_level or config.log_level)
+    input_path: Path = resolve_inventory_path(config, config_path, cli_input=args.input)
+    output_path: Path = Path(args.output).resolve() if args.output else input_path
+    non_interactive: Any | bool = args.non_interactive or not config.interactive_mode
 
     LOGGER.info("Using config %s", config_path)
     LOGGER.info("Logging to %s", log_path)
@@ -93,9 +98,9 @@ def main() -> int:
         LOGGER.error("Input file not found: %s", input_path)
         return 1
 
-    original_text = read_text(input_path)
+    original_text: str = read_text(input_path)
     try:
-        document = parse_inventory_document(original_text)
+        document: InventoryDocument = parse_inventory_document(original_text)
     except KeyValueParseError as exc:
         LOGGER.error("Failed to parse inventory file: %s", exc)
         return 1
@@ -118,13 +123,13 @@ def main() -> int:
         LOGGER.warning(str(exc))
         return 1
 
-    finalized_text = serialize_inventory_document(document)
+    finalized_text: str = serialize_inventory_document(document)
     if finalized_text == original_text and input_path == output_path:
         LOGGER.info("No changes were necessary.")
         return 0
 
     if input_path == output_path and config.create_backup and not args.no_backup:
-        backup_path = create_backup(input_path)
+        backup_path: Path = create_backup(input_path)
         LOGGER.info("Backup written to %s", backup_path)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)

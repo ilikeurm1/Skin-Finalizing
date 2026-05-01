@@ -15,10 +15,10 @@ class KeyValueParseError(RuntimeError):
 def tokenize_keyvalues(text: str) -> list[str]:
     tokens: list[str] = []
     index = 0
-    length = len(text)
+    length: int = len(text)
 
     while index < length:
-        ch = text[index]
+        ch: str = text[index]
 
         if ch.isspace():
             index += 1
@@ -41,7 +41,7 @@ def tokenize_keyvalues(text: str) -> list[str]:
             while index < length:
                 ch = text[index]
                 if ch == "\\" and index + 1 < length:
-                    next_char = text[index + 1]
+                    next_char: str = text[index + 1]
                     if next_char in {'"', "\\"}:
                         buffer.append(next_char)
                         index += 2
@@ -59,7 +59,7 @@ def tokenize_keyvalues(text: str) -> list[str]:
             tokens.append("".join(buffer))
             continue
 
-        start = index
+        start: int = index
         while index < length and not text[index].isspace() and text[index] not in "{}":
             if text[index] == "/" and index + 1 < length and text[index + 1] == "/":
                 break
@@ -70,7 +70,7 @@ def tokenize_keyvalues(text: str) -> list[str]:
 
 
 def parse_keyvalues(text: str) -> OrderedDict[str, object]:
-    tokens = tokenize_keyvalues(text)
+    tokens: list[str] = tokenize_keyvalues(text)
     parsed, next_index = parse_object(tokens, 0)
     if next_index != len(tokens):
         raise KeyValueParseError("Unexpected trailing tokens in inventory file.")
@@ -81,13 +81,13 @@ def parse_object(tokens: list[str], index: int) -> tuple[OrderedDict[str, object
     result: OrderedDict[str, object] = OrderedDict()
 
     while index < len(tokens):
-        token = tokens[index]
+        token: str = tokens[index]
         if token == "}":
             return result, index + 1
         if token == "{":
             raise KeyValueParseError("Unexpected '{' in inventory file.")
 
-        key = token
+        key: str = token
         index += 1
         if index >= len(tokens):
             raise KeyValueParseError(f"Missing value for key '{key}'.")
@@ -109,8 +109,8 @@ def parse_object(tokens: list[str], index: int) -> tuple[OrderedDict[str, object
 
 def parse_inventory_document(text: str) -> InventoryDocument:
     LOGGER.debug("Parsing inventory document with %d characters", len(text))
-    parsed = parse_keyvalues(text)
-    container = unwrap_root_container(parsed)
+    parsed: OrderedDict[str, object] = parse_keyvalues(text)
+    container: OrderedDict[str, object] = unwrap_root_container(parsed)
 
     items_object: OrderedDict[str, object]
     other_top_level: OrderedDict[str, object] = OrderedDict()
@@ -140,7 +140,9 @@ def parse_inventory_document(text: str) -> InventoryDocument:
         items.append(parse_item(item_id, raw_value))
     items.sort(key=lambda item: safe_int(item.id))
 
-    default_equips = parse_default_equips(container.get("default_equips"))
+    default_equips: list[DefaultEquip] = parse_default_equips(
+        container.get("default_equips")
+    )
     LOGGER.info(
         "Parsed inventory document with %d items and %d default equips",
         len(items),
@@ -174,17 +176,17 @@ def unwrap_root_container(parsed: OrderedDict[str, object]) -> OrderedDict[str, 
 
 
 def parse_item(item_id: str, raw_item: OrderedDict[str, object]) -> InventoryItem:
-    attributes = parse_string_map(
+    attributes: OrderedDict[str, str] = parse_string_map(
         raw_item.get("attributes") or raw_item.get("Attributes")
     )
-    equipped_state = parse_string_map(
+    equipped_state: OrderedDict[str, str] = parse_string_map(
         raw_item.get("equipped_state") or raw_item.get("EquippedState")
     )
 
     extra_fields: OrderedDict[str, object] = OrderedDict()
-    lowered_standard = {field.lower() for field in STANDARD_ITEM_FIELDS}
+    lowered_standard: set[str] = {field.lower() for field in STANDARD_ITEM_FIELDS}
     for key, value in raw_item.items():
-        lowered = key.lower()
+        lowered: str = key.lower()
         if lowered in lowered_standard or lowered in {"attributes", "equipped_state"}:
             continue
         extra_fields[key] = value

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from collections import OrderedDict
 
+from src.gui import GuiUnavailableError, prompt_for_choices_gui
+
 from .catalog import CatalogResolver
 from .constants import CT_CLASS_ID, DEF_INDEX_LOADOUTS, LOADOUT_LABELS, T_CLASS_ID
 from .models import (
@@ -39,12 +41,13 @@ def collect_loadout_choices(document: InventoryDocument) -> list[LoadoutChoice]:
 
     choices: list[LoadoutChoice] = []
     for pair, label in iter_loadout_labels_by_side():
-        candidates = candidates_by_pair.get(pair, [])
+        candidates: list[InventoryItem] = candidates_by_pair.get(pair, [])
         if not candidates:
             continue
 
-        current = next(
-            (item for item in current_by_pair.get(pair, []) if item in candidates), None
+        current: InventoryItem | None = next(
+            (item for item in current_by_pair.get(pair, []) if item in candidates),
+            None,
         )
         choices.append(
             LoadoutChoice(
@@ -66,7 +69,6 @@ def select_loadout_items(
     non_interactive: bool,
     stats: FinalizeStats,
 ) -> OrderedDict[tuple[str, str], InventoryItem]:
-    from ..gui import GuiUnavailableError, prompt_for_choices_gui
 
     LOGGER.info(
         "Selecting loadout items for %d choices (%s mode)",
@@ -109,7 +111,7 @@ def select_loadout_items(
                 "GUI unavailable (%s); falling back to terminal prompts.", exc
             )
             for choice in ambiguous_choices:
-                selected = prompt_for_choice(
+                selected: InventoryItem | None = prompt_for_choice(
                     choice.label, choice.candidates, choice.current, resolver
                 )
                 if selected is None:
@@ -137,8 +139,10 @@ def rebuild_equips(
     rebuild_default_equips: bool,
 ) -> None:
     LOGGER.info("Rebuilding equipped state and default equips")
-    choices = collect_loadout_choices(document)
-    selected_by_pair = select_loadout_items(choices, resolver, non_interactive, stats)
+    choices: list[LoadoutChoice] = collect_loadout_choices(document)
+    selected_by_pair: OrderedDict[tuple[str, str], InventoryItem] = (
+        select_loadout_items(choices, resolver, non_interactive, stats)
+    )
     apply_selected_equips(
         document,
         selected_by_pair,
@@ -154,7 +158,7 @@ def apply_selected_equips(
 ) -> None:
     LOGGER.info("Applying %d selected loadout entries", len(selected_by_pair))
 
-    managed_pairs = set(selected_by_pair)
+    managed_pairs: set[tuple[str, str]] = set(selected_by_pair)
     for item in document.items:
         preserved: OrderedDict[str, str] = OrderedDict()
         for class_id, slot_id in item.equipped_state.items():
@@ -169,13 +173,13 @@ def apply_selected_equips(
     if not managed_pairs or not rebuild_default_equips:
         return
 
-    existing_by_pair = {
+    existing_by_pair: dict[tuple[str, str], DefaultEquip] = {
         (equip.class_id, equip.slot_id): equip for equip in document.default_equips
     }
     rebuilt_default_equips: list[DefaultEquip] = []
     for pair, item in selected_by_pair.items():
         class_id, slot_id = pair
-        existing = existing_by_pair.get(pair)
+        existing: DefaultEquip | None = existing_by_pair.get(pair)
         rebuilt_default_equips.append(
             DefaultEquip(
                 def_index=item.def_index,
@@ -214,7 +218,7 @@ def prompt_for_choice(
     print("-" * len(f"\n{label} has {len(candidates)} candidates:"))
     default_index = 1
     for index, item in enumerate(candidates, start=1):
-        marker = ""
+        marker: str = ""
         if item is current:
             default_index = index
             marker = " [currently equipped]"
@@ -222,7 +226,7 @@ def prompt_for_choice(
         print("-" * len(f"  {index}. {resolver.describe_item(item)}{marker}"))
 
     while True:
-        response = (
+        response: str = (
             input(
                 f"Select {label} [1-{len(candidates)}, Enter={default_index}, s=skip]: "
             )
@@ -230,7 +234,7 @@ def prompt_for_choice(
             .lower()
         )
         if not response:
-            selection = candidates[default_index - 1]
+            selection: InventoryItem = candidates[default_index - 1]
             LOGGER.info(
                 "%s accepted default choice %s",
                 label,

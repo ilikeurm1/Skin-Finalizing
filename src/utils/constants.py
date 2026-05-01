@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from collections import OrderedDict
 
-
 T_CLASS_ID = "2"
 CT_CLASS_ID = "3"
 LEGACY_INVENTORY_VALUE = "3"
@@ -11,7 +10,7 @@ LOG_DIRECTORY_NAME = "logs"
 FLOAT_ATTRIBUTE_ID = "8"
 PAINT_ATTRIBUTE_ID = "6"
 PATTERN_ATTRIBUTE_ID = "7"
-DEFAULT_FLOAT_VALUE = "0"
+DEFAULT_FLOAT_VALUE = "0.00001"
 DEFAULT_LOG_LEVEL = "INFO"
 FLOAT_NORMALIZATION_OFFSET = "0.0001"
 LOGGER_NAME = "csgo_gc.finalizer"

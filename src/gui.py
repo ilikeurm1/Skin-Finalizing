@@ -5,7 +5,7 @@ import logging
 import math
 from typing import Any, Callable
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import SplitResult, urlsplit, urlunsplit
 from urllib.request import Request, urlopen
 
 from .utils.catalog import CatalogResolver
@@ -37,7 +37,7 @@ class SelectionCanceledError(RuntimeError):
 class GuiLogHandler(logging.Handler):
     def __init__(self, emit_line: Callable[[str], None]) -> None:
         super().__init__(level=logging.INFO)
-        self.emit_line = emit_line
+        self.emit_line: Callable[[str], None] = emit_line
 
     def emit(self, record: logging.LogRecord) -> None:
         try:
@@ -54,13 +54,13 @@ def build_image_fetch_urls(url: str) -> list[str]:
     if not url:
         return []
 
-    candidates = [url]
+    candidates: list[str] = [url]
     try:
-        parsed = urlsplit(url)
+        parsed: SplitResult = urlsplit(url)
     except ValueError:
         return candidates
 
-    host = parsed.netloc.lower()
+    host: str = parsed.netloc.lower()
     if parsed.path.startswith("/economy/image/") and host != STEAM_IMAGE_CDN_HOST:
         if host.endswith(".steamstatic.com") or host.endswith(".steamstatic.com:443"):
             LOGGER.debug(
@@ -93,12 +93,12 @@ class GuiImageCache:
         if not url:
             return None
 
-        cache_key = (url, max_width, max_height)
+        cache_key: tuple[str, int, int] = (url, max_width, max_height)
         if cache_key in self.photo_cache:
             LOGGER.debug("Using cached GUI image for %s", url)
             return self.photo_cache[cache_key]
 
-        raw = self.raw_cache.get(url)
+        raw: bytes | None = self.raw_cache.get(url)
         if raw is None:
             for candidate_url in build_image_fetch_urls(url):
                 raw = self.raw_cache.get(candidate_url)
@@ -134,9 +134,11 @@ class GuiImageCache:
             LOGGER.warning("Failed to decode preview image for %s: %s", url, exc)
             return None
 
-        width = max(1, image.width())
-        height = max(1, image.height())
-        scale = max(1, math.ceil(width / max_width), math.ceil(height / max_height))
+        width: int = max(1, image.width())
+        height: int = max(1, image.height())
+        scale: int = max(
+            1, math.ceil(width / max_width), math.ceil(height / max_height)
+        )
         if scale > 1:
             image = image.subsample(scale, scale)
 
@@ -156,13 +158,19 @@ class LoadoutSelectionGui:
     ) -> None:
         self.tk = tk_module
         self.ttk = ttk_module
-        self.resolver = resolver
-        self.all_choices = all_choices
-        self.ambiguous_choices = ambiguous_choices
-        self.selected_by_pair = dict(initial_selected_by_pair)
-        self.current_by_pair = {choice.pair: choice.current for choice in all_choices}
-        self.choice_by_pair = {choice.pair: choice for choice in all_choices}
-        self.side_pairs = {
+        self.resolver: CatalogResolver = resolver
+        self.all_choices: list[LoadoutChoice] = all_choices
+        self.ambiguous_choices: list[LoadoutChoice] = ambiguous_choices
+        self.selected_by_pair: dict[tuple[str, str], InventoryItem] = dict(
+            initial_selected_by_pair
+        )
+        self.current_by_pair: dict[tuple[str, str], InventoryItem | None] = {
+            choice.pair: choice.current for choice in all_choices
+        }
+        self.choice_by_pair: dict[tuple[str, str], LoadoutChoice] = {
+            choice.pair: choice for choice in all_choices
+        }
+        self.side_pairs: dict[str, list[tuple[str, str]]] = {
             T_CLASS_ID: [
                 choice.pair for choice in all_choices if choice.pair[0] == T_CLASS_ID
             ],
@@ -170,7 +178,7 @@ class LoadoutSelectionGui:
                 choice.pair for choice in all_choices if choice.pair[0] == CT_CLASS_ID
             ],
         }
-        self.side_prompt_counts = {
+        self.side_prompt_counts: dict[str, int] = {
             T_CLASS_ID: len(
                 [choice for choice in ambiguous_choices if choice.pair[0] == T_CLASS_ID]
             ),
@@ -479,7 +487,7 @@ class LoadoutSelectionGui:
             return None
 
         if getattr(event, "delta", 0):
-            units = -int(event.delta / 120)
+            units: int = -int(event.delta / 120)
             if units == 0:
                 units = -1 if event.delta > 0 else 1
         elif getattr(event, "num", None) == 4:
@@ -513,15 +521,15 @@ class LoadoutSelectionGui:
         return self.result
 
     def refresh_view(self) -> None:
-        choice = self.ambiguous_choices[self.choice_index]
-        side_class_id = choice.pair[0]
-        side_name = side_name_for_class(side_class_id)
-        side_step = 1 + sum(
+        choice: LoadoutChoice = self.ambiguous_choices[self.choice_index]
+        side_class_id: str = choice.pair[0]
+        side_name: str = side_name_for_class(side_class_id)
+        side_step: int = 1 + sum(
             1
             for earlier in self.ambiguous_choices[: self.choice_index]
             if earlier.pair[0] == side_class_id
         )
-        side_total = self.side_prompt_counts[side_class_id]
+        side_total: int = self.side_prompt_counts[side_class_id]
         self.title_var.set(f"{side_name}: {choice.label}")
         self.subtitle_var.set(
             f"Selection {self.choice_index + 1} of {len(self.ambiguous_choices)} | "
@@ -588,16 +596,18 @@ class LoadoutSelectionGui:
         self.options_inner.grid_columnconfigure(0, weight=1)
         self.options_inner.grid_columnconfigure(1, weight=1)
 
-        selected_item = self.selected_by_pair.get(choice.pair)
+        selected_item: InventoryItem | None = self.selected_by_pair.get(choice.pair)
         for index, candidate in enumerate(choice.candidates):
-            row = (index // 2) + 1
-            column = index % 2
-            is_selected = selected_item is candidate
-            is_current = choice.current is candidate
-            is_suggested = choice.current is None and choice.default_item is candidate
+            row: int = (index // 2) + 1
+            column: int = index % 2
+            is_selected: bool = selected_item is candidate
+            is_current: bool = choice.current is candidate
+            is_suggested: bool = (
+                choice.current is None and choice.default_item is candidate
+            )
 
-            border_color = "#2b6cb0" if is_selected else "#b0b0b0"
-            border_width = 3 if is_selected else 1
+            border_color: str = "#2b6cb0" if is_selected else "#b0b0b0"
+            border_width: int = 3 if is_selected else 1
             card = self.tk.Frame(
                 self.options_inner,
                 bg=GUI_DARK_CARD,
@@ -610,7 +620,7 @@ class LoadoutSelectionGui:
             )
             card.grid(row=row, column=column, sticky="nsew", padx=8, pady=8)
 
-            image = self.image_cache.get(
+            image: Any | None = self.image_cache.get(
                 self.resolver.get_item_image_url(candidate),
                 max_width=220,
                 max_height=160,
@@ -636,7 +646,7 @@ class LoadoutSelectionGui:
             title_label.pack(anchor="w", pady=(10, 0), fill="x")
 
             detail_lines: list[str] = []
-            details = self.resolver.describe_item_details(candidate)
+            details: str = self.resolver.describe_item_details(candidate)
             if details:
                 detail_lines.append(details)
             if is_current:
@@ -674,7 +684,7 @@ class LoadoutSelectionGui:
             ).pack(anchor="e", pady=(10, 0))
 
     def refresh_preview(self, choice: LoadoutChoice) -> None:
-        active_item = self.selected_by_pair.get(choice.pair)
+        active_item: InventoryItem | None = self.selected_by_pair.get(choice.pair)
         if active_item is None:
             active_item = choice.current
 
@@ -687,7 +697,7 @@ class LoadoutSelectionGui:
             )
             return
 
-        image = self.image_cache.get(
+        image: Any | None = self.image_cache.get(
             self.resolver.get_item_image_url(active_item), max_width=320, max_height=240
         )
         if image is None:
@@ -703,18 +713,18 @@ class LoadoutSelectionGui:
         elif choice.pair not in self.selected_by_pair:
             preview_state = "Preserving current state"
 
-        details = self.resolver.describe_item_details(active_item)
+        details: str = self.resolver.describe_item_details(active_item)
         self.preview_title_var.set(self.resolver.describe_item_name(active_item))
         self.preview_details_var.set(
             preview_state if not details else f"{preview_state} | {details}"
         )
 
     def side_summary_text(self, pair: tuple[str, str]) -> str:
-        selected = self.selected_by_pair.get(pair)
+        selected: InventoryItem | None = self.selected_by_pair.get(pair)
         if selected is not None:
             return truncate_text(self.resolver.describe_item_name(selected))
 
-        current = self.current_by_pair.get(pair)
+        current: InventoryItem | None = self.current_by_pair.get(pair)
         if current is not None:
             return truncate_text(
                 f"Preserve: {self.resolver.describe_item_name(current)}"
@@ -740,7 +750,7 @@ class LoadoutSelectionGui:
         self.refresh_view()
 
     def preserve_existing(self) -> None:
-        choice = self.ambiguous_choices[self.choice_index]
+        choice: LoadoutChoice = self.ambiguous_choices[self.choice_index]
         self.selected_by_pair.pop(choice.pair, None)
         if choice.current is None:
             self.status_var.set(f"{choice.label} will stay unassigned.")
@@ -757,7 +767,7 @@ class LoadoutSelectionGui:
         self.refresh_view()
 
     def use_default(self) -> None:
-        choice = self.ambiguous_choices[self.choice_index]
+        choice: LoadoutChoice = self.ambiguous_choices[self.choice_index]
         self.selected_by_pair[choice.pair] = choice.default_item
         LOGGER.info(
             "%s reset to suggested item %s",
@@ -792,7 +802,7 @@ class LoadoutSelectionGui:
     def _ordered_result(self) -> dict[tuple[str, str], InventoryItem]:
         ordered: dict[tuple[str, str], InventoryItem] = {}
         for choice in self.all_choices:
-            selected = self.selected_by_pair.get(choice.pair)
+            selected: InventoryItem | None = self.selected_by_pair.get(choice.pair)
             if selected is not None:
                 ordered[choice.pair] = selected
         return ordered

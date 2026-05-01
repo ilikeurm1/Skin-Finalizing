@@ -51,12 +51,12 @@ def get_default_config_path() -> Path:
 
 
 def build_default_config() -> AppConfig:
-    default_inventory = get_project_root().parent / "inventory.txt"
+    default_inventory: Path = get_project_root().parent / "inventory.txt"
     return AppConfig(inventory_dir=str(default_inventory))
 
 
 def save_config(config: AppConfig, config_path: Path | None = None) -> Path:
-    target_path = config_path or get_default_config_path()
+    target_path: Path = config_path or get_default_config_path()
     target_path.parent.mkdir(parents=True, exist_ok=True)
     target_path.write_text(
         json.dumps(asdict(config), indent=2) + "\n",
@@ -89,8 +89,8 @@ def _read_string(value: object, fallback: str) -> str:
 
 
 def load_config(config_path: Path | None = None) -> tuple[AppConfig, Path]:
-    target_path = config_path or get_default_config_path()
-    default_config = build_default_config()
+    target_path: Path = config_path or get_default_config_path()
+    default_config: AppConfig = build_default_config()
 
     if not target_path.exists():
         save_config(default_config, target_path)
@@ -218,7 +218,7 @@ def load_config(config_path: Path | None = None) -> tuple[AppConfig, Path]:
 
 
 def _coerce_inventory_candidate(candidate: str, config_path: Path) -> Path:
-    path = Path(candidate).expanduser()
+    path: Path = Path(candidate).expanduser()
     if not path.is_absolute():
         path = (config_path.parent / path).resolve()
 
@@ -232,7 +232,7 @@ def prompt_for_inventory_path(initial_path: Path | None = None) -> Path | None:
         import tkinter as tk
         from tkinter import filedialog
     except ImportError:
-        response = input(
+        response: str = input(
             "Inventory path not found. Enter the full path to inventory.txt: "
         ).strip()
         if not response:
@@ -242,7 +242,7 @@ def prompt_for_inventory_path(initial_path: Path | None = None) -> Path | None:
     root = tk.Tk()
     root.withdraw()
     root.attributes("-topmost", True)
-    selected_path = filedialog.askopenfilename(
+    selected_path: str = filedialog.askopenfilename(
         title="Select inventory.txt",
         initialdir=str(initial_path.parent if initial_path else get_project_root()),
         initialfile=initial_path.name if initial_path else "inventory.txt",
@@ -266,11 +266,13 @@ def resolve_inventory_path(
     if cli_input:
         return _coerce_inventory_candidate(cli_input, config_path)
 
-    candidate_path = _coerce_inventory_candidate(config.inventory_dir, config_path)
+    candidate_path: Path = _coerce_inventory_candidate(
+        config.inventory_dir, config_path
+    )
     if candidate_path.exists():
         return candidate_path
 
-    selected_path = prompt_for_inventory_path(candidate_path)
+    selected_path: Path | None = prompt_for_inventory_path(candidate_path)
     if selected_path is None:
         raise FileNotFoundError(f"Input inventory file not found: {candidate_path}")
 

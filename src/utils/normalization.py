@@ -24,7 +24,11 @@ from .constants import (
 )
 from .models import FinalizeStats, InventoryDocument, InventoryItem
 from .runtime import LOGGER
-from .text import normalize_pattern_seed, normalize_paint_index, normalize_float_value
+from .text import (
+    normalize_pattern_seed,
+    normalize_paint_index,
+    offset_min_float_value,
+)
 
 
 def is_painted_item(item: InventoryItem) -> bool:
@@ -43,10 +47,10 @@ def resolve_lowest_supported_float(
     item: InventoryItem,
     resolver: CatalogResolver,
 ) -> str:
-    resolved_float = resolver.get_lowest_float_value(item)
+    resolved_float: str = resolver.get_lowest_float_value(item)
     if resolved_float:
         return resolved_float
-    return normalize_float_value(FLOAT_NORMALIZATION_OFFSET, DEFAULT_FLOAT_VALUE)
+    return offset_min_float_value(DEFAULT_FLOAT_VALUE, FLOAT_NORMALIZATION_OFFSET)
 
 
 def resolve_stattrak_kill_count(
@@ -54,7 +58,7 @@ def resolve_stattrak_kill_count(
     *,
     randomize_missing: bool,
 ) -> tuple[str, bool]:
-    existing_value = item.attributes.get(STATTRAK_COUNTER_ATTRIBUTE_ID, "").strip()
+    existing_value: str = item.attributes.get(STATTRAK_COUNTER_ATTRIBUTE_ID, "").strip()
     if existing_value:
         try:
             parsed_value = int(float(existing_value))
@@ -106,15 +110,19 @@ def resolve_case_hardened_blue_gem_seed(
     if not resolver.is_case_hardened(item):
         return
 
-    override_seed = normalize_pattern_seed(
+    override_seed: str = normalize_pattern_seed(
         config.case_hardened.preferred_seed_overrides.get(item.def_index, "")
     )
-    seed_candidates = resolver.get_case_hardened_seed_candidates(item)
-    selected_seed = override_seed or (seed_candidates[0] if seed_candidates else "")
+    seed_candidates: tuple[str, ...] = resolver.get_case_hardened_seed_candidates(item)
+    selected_seed: str = override_seed or (
+        seed_candidates[0] if seed_candidates else ""
+    )
     if not selected_seed:
         return
 
-    current_seed = normalize_pattern_seed(item.attributes.get(PATTERN_ATTRIBUTE_ID, ""))
+    current_seed: str = normalize_pattern_seed(
+        item.attributes.get(PATTERN_ATTRIBUTE_ID, "")
+    )
     if current_seed == selected_seed:
         return
 
@@ -146,15 +154,19 @@ def resolve_fade_full_fade_seed(
     if not resolver.is_fade(item):
         return
 
-    override_seed = normalize_pattern_seed(
+    override_seed: str = normalize_pattern_seed(
         config.fade.preferred_seed_overrides.get(item.def_index, "")
     )
-    seed_candidates = resolver.get_fade_seed_candidates(item)
-    selected_seed = override_seed or (seed_candidates[0] if seed_candidates else "")
+    seed_candidates: tuple[str, ...] = resolver.get_fade_seed_candidates(item)
+    selected_seed: str = override_seed or (
+        seed_candidates[0] if seed_candidates else ""
+    )
     if not selected_seed:
         return
 
-    current_seed = normalize_pattern_seed(item.attributes.get(PATTERN_ATTRIBUTE_ID, ""))
+    current_seed: str = normalize_pattern_seed(
+        item.attributes.get(PATTERN_ATTRIBUTE_ID, "")
+    )
     if current_seed == selected_seed:
         return
 
@@ -191,7 +203,7 @@ def normalize_stattrak_state(
     if not is_weapon_skin_item(item):
         return
 
-    stattrak_support = resolver.get_stattrak_support(item)
+    stattrak_support: bool | None = resolver.get_stattrak_support(item)
     if stattrak_support is False:
         if config.features.clean_unsupported_weapon_stattrak and strip_stattrak_state(
             item, DEFAULT_WEAPON_QUALITY_VALUE
@@ -235,10 +247,10 @@ def normalize_inventory(
 ) -> None:
     LOGGER.info("Normalizing %d inventory items", len(document.items))
     for item in document.items:
-        has_float = FLOAT_ATTRIBUTE_ID in item.attributes
+        has_float: bool = FLOAT_ATTRIBUTE_ID in item.attributes
         has_paint = bool(item.attributes.get(PAINT_ATTRIBUTE_ID, "").strip())
         if config.features.normalize_float_values:
-            target_float = (
+            target_float: str = (
                 resolve_lowest_supported_float(item, resolver) if has_paint else ""
             )
             if has_float:
@@ -254,16 +266,18 @@ def normalize_inventory(
         resolve_fade_full_fade_seed(item, resolver, config, stats)
         normalize_stattrak_state(item, resolver, config, stats)
 
-    deduped_items = document.items
+    deduped_items: list[InventoryItem] = document.items
     if config.features.dedupe_items:
         dedupe_seen: set[tuple[str, str, str, str, str]] = set()
         deduped_items = []
         for item in document.items:
-            paint_index = normalize_paint_index(
+            paint_index: str = normalize_paint_index(
                 item.attributes.get(PAINT_ATTRIBUTE_ID, "")
             )
             if paint_index:
-                dedupe_key = resolver.build_dedupe_key(item)
+                dedupe_key: tuple[str, str, str, str, str] = resolver.build_dedupe_key(
+                    item
+                )
                 if dedupe_key in dedupe_seen:
                     stats.removed_duplicates += 1
                     continue

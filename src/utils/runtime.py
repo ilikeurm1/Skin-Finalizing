@@ -5,7 +5,7 @@ import shutil
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, TextIO
 
 from .constants import (
     BACKUP_DIRECTORY_NAME,
@@ -15,8 +15,7 @@ from .constants import (
     LOG_LEVEL_WIDTH,
 )
 
-
-LOGGER = logging.getLogger(LOGGER_NAME)
+LOGGER: logging.Logger = logging.getLogger(LOGGER_NAME)
 
 
 class CenteredLevelFormatter(logging.Formatter):
@@ -24,10 +23,10 @@ class CenteredLevelFormatter(logging.Formatter):
         self, *args: Any, level_width: int = LOG_LEVEL_WIDTH, **kwargs: Any
     ) -> None:
         super().__init__(*args, **kwargs)
-        self.level_width = level_width
+        self.level_width: int = level_width
 
     def format(self, record: logging.LogRecord) -> str:
-        original_levelname = record.levelname
+        original_levelname: str = record.levelname
         record.levelname = original_levelname.center(self.level_width)
         try:
             return super().format(record)
@@ -36,23 +35,23 @@ class CenteredLevelFormatter(logging.Formatter):
 
 
 def parse_log_level(value: str) -> int:
-    normalized = value.strip().upper()
-    resolved = getattr(logging, normalized, None)
+    normalized: str = value.strip().upper()
+    resolved: Any | None = getattr(logging, normalized, None)
     if not isinstance(resolved, int):
         raise ValueError(f"Unsupported log level: {value}")
     return resolved
 
 
 def build_log_path(base_dir: Path) -> Path:
-    logs_dir = base_dir / LOG_DIRECTORY_NAME
+    logs_dir: Path = base_dir / LOG_DIRECTORY_NAME
     logs_dir.mkdir(parents=True, exist_ok=True)
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamp: str = datetime.now().strftime("%Y%m%d_%H%M%S")
     return logs_dir / f"skin_finalizing.{timestamp}.log"
 
 
 def configure_logging(base_dir: Path, log_level_name: str = DEFAULT_LOG_LEVEL) -> Path:
-    log_level = parse_log_level(log_level_name)
-    log_path = build_log_path(base_dir)
+    log_level: int = parse_log_level(log_level_name)
+    log_path: Path = build_log_path(base_dir)
 
     LOGGER.setLevel(logging.DEBUG)
     LOGGER.propagate = False
@@ -61,7 +60,9 @@ def configure_logging(base_dir: Path, log_level_name: str = DEFAULT_LOG_LEVEL) -
         LOGGER.removeHandler(handler)
         handler.close()
 
-    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler: logging.StreamHandler[TextIO | Any] = logging.StreamHandler(
+        sys.stdout
+    )
     console_handler.setLevel(log_level)
     console_handler.setFormatter(
         CenteredLevelFormatter(
@@ -90,18 +91,18 @@ def configure_logging(base_dir: Path, log_level_name: str = DEFAULT_LOG_LEVEL) -
 
 
 def build_backup_path(path: Path) -> Path:
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    backup_dir = path.parent
+    timestamp: str = datetime.now().strftime("%Y%m%d_%H%M%S")
+    backup_dir: Path = path.parent
     if backup_dir.name != BACKUP_DIRECTORY_NAME:
         backup_dir = backup_dir / BACKUP_DIRECTORY_NAME
     backup_dir.mkdir(parents=True, exist_ok=True)
-    backup_path = backup_dir / f"{path.stem}.{timestamp}.bak{path.suffix}"
+    backup_path: Path = backup_dir / f"{path.stem}.{timestamp}.bak{path.suffix}"
     LOGGER.debug("Backup path resolved to %s", backup_path)
     return backup_path
 
 
 def create_backup(path: Path) -> Path:
-    backup_path = build_backup_path(path)
+    backup_path: Path = build_backup_path(path)
     shutil.copy2(path, backup_path)
     return backup_path
 

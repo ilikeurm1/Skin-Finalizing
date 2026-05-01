@@ -4,17 +4,25 @@ from decimal import Decimal, InvalidOperation
 import sys
 
 from .constants import (
+    DEFAULT_FLOAT_VALUE,
     SEED_SENSITIVE_PATTERN_ID_PREFIXES,
     SEED_SENSITIVE_PATTERN_NAMES,
     SEED_SENSITIVE_PATTERN_NAME_SUFFIXES,
 )
 
 
+def floor_float_value(value: Decimal) -> Decimal:
+    minimum_value = Decimal(DEFAULT_FLOAT_VALUE)
+    if value <= 0 or value < minimum_value:
+        return minimum_value
+    return value
+
+
 def strip_wear_suffix(name: str) -> str:
     if not name:
         return name
 
-    lower = name.lower()
+    lower: str = name.lower()
     suffixes = (
         " (factory new)",
         " (minimal wear)",
@@ -30,7 +38,7 @@ def strip_wear_suffix(name: str) -> str:
 
 
 def skin_name_only(name: str) -> str:
-    cleaned = strip_wear_suffix(name)
+    cleaned: str = strip_wear_suffix(name)
     if "|" in cleaned:
         return cleaned.split("|", 1)[1].strip()
     return cleaned
@@ -40,7 +48,7 @@ def normalize_pattern_seed(value: str) -> str:
     if not value:
         return ""
 
-    trimmed = value.strip()
+    trimmed: str = value.strip()
     try:
         numeric = float(trimmed)
     except ValueError:
@@ -55,11 +63,11 @@ def is_seed_sensitive_skin(pattern_name: str, pattern_id: str, phase: str) -> bo
     if phase.strip():
         return True
 
-    normalized_pattern_id = pattern_id.strip().lower()
+    normalized_pattern_id: str = pattern_id.strip().lower()
     if normalized_pattern_id.startswith(SEED_SENSITIVE_PATTERN_ID_PREFIXES):
         return True
 
-    normalized_pattern_name = pattern_name.strip().lower()
+    normalized_pattern_name: str = pattern_name.strip().lower()
     if not normalized_pattern_name:
         return False
 
@@ -83,7 +91,7 @@ def normalize_float_value(
     *,
     snap_to_cent: bool = False,
 ) -> str:
-    normalized = normalize_scalar(value, fallback).strip()
+    normalized: str = normalize_scalar(value, fallback).strip()
     if not normalized:
         return fallback
 
@@ -93,21 +101,21 @@ def normalize_float_value(
         return normalized
 
     if snap_to_cent:
-        snapped_value = decimal_value.quantize(Decimal("0.01"))
+        snapped_value: Decimal = decimal_value.quantize(Decimal("0.01"))
         if abs(decimal_value - snapped_value) <= Decimal("0.000001"):
             decimal_value = snapped_value
 
-    formatted = format(decimal_value.normalize(), "f")
+    formatted: str = format(decimal_value.normalize(), "f")
     if "." in formatted:
-        formatted = formatted.rstrip("0").rstrip(".")
+        formatted= formatted.rstrip("0").rstrip(".")
     return formatted or "0"
 
 
 def offset_min_float_value(value: object, offset: str) -> str:
-    normalized = normalize_float_value(value)
-    offset_normalized = normalize_float_value(offset, offset)
+    normalized: str = normalize_float_value(value)
+    offset_normalized: str = normalize_float_value(offset, offset)
     if not normalized:
-        return offset_normalized
+        return offset_min_float_value(DEFAULT_FLOAT_VALUE, offset_normalized)
 
     try:
         decimal_value = Decimal(normalized)
@@ -115,12 +123,14 @@ def offset_min_float_value(value: object, offset: str) -> str:
     except InvalidOperation:
         return normalized
 
-    snapped_value = decimal_value.quantize(Decimal("0.01"))
+    decimal_value = floor_float_value(decimal_value)
+    snapped_value: Decimal = decimal_value.quantize(Decimal("0.01"))
     if abs(decimal_value - snapped_value) <= Decimal("0.000001"):
         decimal_value = snapped_value
 
-    adjusted_value = decimal_value + offset_value
-    formatted = format(adjusted_value.normalize(), "f")
+    adjusted_value: Decimal = decimal_value + offset_value
+    adjusted_value = floor_float_value(adjusted_value)
+    formatted: str = format(adjusted_value.normalize(), "f")
     if "." in formatted:
         formatted = formatted.rstrip("0").rstrip(".")
     return formatted or "0"
@@ -130,7 +140,7 @@ def normalize_paint_index(value: str) -> str:
     if not value:
         return ""
 
-    trimmed = value.strip()
+    trimmed: str = value.strip()
     if trimmed.endswith(".000000"):
         return trimmed[:-7]
     if trimmed.endswith(".0"):
@@ -157,7 +167,7 @@ def indent(level: int) -> str:
 
 
 def quote(value: str) -> str:
-    escaped = value.replace("\\", "\\\\").replace('"', '\\"')
+    escaped: str = value.replace("\\", "\\\\").replace('"', '\\"')
     return f'"{escaped}"'
 
 
